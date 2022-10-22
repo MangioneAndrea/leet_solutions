@@ -1,5 +1,7 @@
 package main
 
+import "sort"
+
 // One could do the naive implementation, loop all letters in the string and iterate left and right to see for which level it is a palindrome
 // That solution would run into O(n^2) time complexity
 
@@ -55,3 +57,83 @@ package main
 //    Only 1 element, nothing to check
 // result 1, as the string is bigger than 0. Not fast at all.
 // This is why we can implement a cache. This will increase the space complexity by O(n), which still is O(n) in the end.
+
+func longestPalindrome(s string) string {
+	var lettersArrays = map[int32][]int{}
+	var lettersMap = map[int32]map[int32]bool{}
+	var isPalindrome = map[int32]map[int32]bool{}
+
+	for i, char := range s {
+		isPalindrome[int32(i)] = map[int32]bool{}
+		if _, ok := lettersArrays[char]; ok {
+			lettersArrays[char] = append(lettersArrays[char], i)
+			lettersMap[char][int32(i)] = true
+		} else {
+			lettersArrays[char] = []int{i}
+			lettersMap[char] = map[int32]bool{int32(i): true}
+		}
+	}
+
+	for _, ints := range lettersArrays {
+		sort.Ints(ints)
+	}
+
+	var maxPalindrome = 0
+	var palindrome = ""
+
+	for _, ints := range lettersArrays {
+		if len(ints) == 1 {
+			if maxPalindrome == 0 {
+				maxPalindrome = 1
+				palindrome = s[ints[0] : ints[0]+1]
+			}
+			continue
+		}
+
+		for leftIndex, left := range ints {
+			for rightIndex := len(ints) - 1; rightIndex > leftIndex; rightIndex-- {
+				right := ints[rightIndex]
+				if res, checked := isPalindrome[int32(left)][int32(right)]; checked {
+					if res {
+						if right-left+1 > maxPalindrome {
+							maxPalindrome = right - left + 1
+							palindrome = s[left : right+1]
+						}
+					}
+					break
+				}
+				if right-left+1 <= maxPalindrome {
+					break
+				}
+				isPal := true
+				for i := 1; i <= (right-left)/2; i++ {
+					l, r := int32(left+i), int32(right-i)
+					if !lettersMap[int32(s[l])][r] {
+						isPal = false
+						break
+					}
+				}
+				if isPal {
+					maxPalindrome = right - left + 1
+					palindrome = s[left : right+1]
+					break
+				}
+				isPalindrome[int32(left)][int32(right)] = isPal
+			}
+		}
+	}
+
+	if maxPalindrome == 0 {
+		return s[0:1]
+	}
+
+	return palindrome
+}
+
+func main() {
+	println(longestPalindrome("babad"))
+	println(longestPalindrome("cbbd"))
+	println(longestPalindrome("abcdefgedcba"))
+	println(longestPalindrome("abcadbcad"))
+	println(longestPalindrome("aabbbabc"))
+}
